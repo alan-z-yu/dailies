@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import sqlite3
 import matplotlib.pyplot as plt
-
+from datetime import datetime
 
 def setup_database():
     conn = sqlite3.connect("progress.db")  # Create or connect to the database
@@ -10,7 +10,8 @@ def setup_database():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS Timer (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ms_passed INTEGER NOT NULL
+            ms_passed INTEGER NOT NULL,
+            date DATE NOT NULL
         )
     """)
     # Check if there's a saved progress
@@ -20,10 +21,28 @@ def setup_database():
     conn.close()
     return result[0] if result else 0  # Return the last saved progress or 0
 
+def add_column_if_not_exists(column_name):
+    conn = sqlite3.connect("progress.db")
+    cursor = conn.cursor()
+
+    cursor.execute("PRAGMA table_info(Timer);")
+    columns = [row[1] for row in cursor.fetchall()]  # Column names are in the second position
+
+    # Add the column if it doesn't exist
+    if column_name not in columns:
+        cursor.execute(f"ALTER TABLE Timer ADD COLUMN {column_name} {column_name.upper()};")
+        print(f"Column '{column_name}' added successfully.")
+    else:
+        print(f"Column '{column_name}' already exists.")
+
+    conn.commit()
+    conn.close()
+
 def save_progress(ms):
     conn = sqlite3.connect("progress.db")
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO Timer (ms_passed) VALUES (?)", (ms,))
+    today = datetime.now().date()
+    cursor.execute("INSERT INTO Timer (ms_passed, date) VALUES (?, ?)", (ms, today))
     conn.commit()
     conn.close()
 
@@ -53,6 +72,23 @@ def show_history_chart():
     else:
         print("No data available!")
 
+def get_data_by_day():
+    conn = sqlite3.connect("progress.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT date, SUM(ms_passed) FROM Timer GROUP BY date ORDER BY date")
+    results = cursor.fetchall()
+    conn.close()
+    return results
+
+def update_timer():
+    global ms_passed, timer_running
+    if timer_running:
+        ms_passed += 1
+        progress["value"] = ms_passed
+        timer.config(text=f"Counted time: {ms_passed}")
+        save_progress(ms_passed)
+        root.after(1, update_timer)
+
 ms_passed = setup_database()
 timer_running = False
 max_time_ms = 100000
@@ -77,15 +113,10 @@ button.pack(pady=10)
 history_button = tk.Button(root, text="View History Chart", command=show_history_chart)
 history_button.pack(pady=10)
 
-def update_timer():
-    global ms_passed, timer_running
-    if timer_running:
-        ms_passed += 1
-        progress["value"] = ms_passed
-        timer.config(text=f"Counted time: {ms_passed}")
-        save_progress(ms_passed)
-        root.after(1, update_timer)
+
 
 update_timer()
+add_column_if_not_exists("ms_passed")
+add_column_if_not_exists("date")
 # Run the application
 root.mainloop()
