@@ -4,6 +4,72 @@ import sqlite3
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+# Fix
+class App(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Menu Navigation Example")
+        self.geometry("400x300")
+        
+        # Dictionary to store frames
+        self.frames = {}
+
+        # Initialize the screens
+        self.create_screens()
+
+        # Show the menu screen first
+        self.show_frame("MenuScreen")
+
+    def create_screens(self):
+        # Add the menu screen
+        menu_screen = MenuScreen(self)
+        self.frames["MenuScreen"] = menu_screen
+        menu_screen.grid(row=0, column=0, sticky="nsew")
+
+        # Add the button screen
+        button_screen = ButtonScreen(self)
+        self.frames["ButtonScreen"] = button_screen
+        button_screen.grid(row=0, column=0, sticky="nsew")
+
+    def show_frame(self, frame_name):
+        """Bring the specified frame to the front."""
+        frame = self.frames[frame_name]
+        frame.tkraise()
+
+# Fix
+class MenuScreen(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        
+        # Add widgets for the menu screen
+        label = tk.Label(self, text="Menu Screen", font=("Arial", 18))
+        label.pack(pady=50)
+
+        button = tk.Button(
+            self, text="Go to Button Screen", 
+            command=lambda: master.show_frame("ButtonScreen")
+        )
+        button.pack()
+
+# Fix
+class ButtonScreen(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        
+        # Add widgets for the button screen
+        label = tk.Label(self, text="Button Screen", font=("Arial", 18))
+        label.pack(pady=50)
+
+        back_button = tk.Button(
+            self, text="Back to Menu",
+            command=lambda: master.show_frame("MenuScreen")
+        )
+        back_button.pack()
+
+        # Example button on this screen
+        action_button = tk.Button(self, text="Action Button")
+        action_button.pack(pady=10)
+
 def setup_database():
     conn = sqlite3.connect("progress.db")  # Create or connect to the database
     cursor = conn.cursor()
@@ -99,7 +165,6 @@ root.title("Timer test")
 root.geometry("300x200")  # Set the window size
 
 # Create a label
-
 timer = tk.Label(root, text=f"Counted time: {ms_passed}")
 timer.pack(pady=10)
 
